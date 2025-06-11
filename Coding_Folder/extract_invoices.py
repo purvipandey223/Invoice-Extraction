@@ -4,13 +4,11 @@ import camelot
 import pandas as pd
 import re
 
-# --- Setup ---
 script_dir = os.path.dirname(__file__)
 input_folder = os.path.join(script_dir, '..', 'Input_Folder')
 output_folder = os.path.join(script_dir, '..', 'Output_Folder')
 os.makedirs(output_folder, exist_ok=True)
 
-# --- Extract text-based metadata ---
 def extract_metadata(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
@@ -32,7 +30,7 @@ def extract_metadata(pdf_path):
 
     return extracted
 
-# --- Normalize column names ---
+
 def standardize_columns(df):
     rename_map = {
         "Description": "Product",
@@ -45,7 +43,7 @@ def standardize_columns(df):
     df.columns = [rename_map.get(col.strip(), col.strip()) for col in df.columns]
     return df
 
-# --- Select best product table ---
+
 def choose_best_table(tables):
     for table in tables:
         df = table.df
@@ -54,23 +52,23 @@ def choose_best_table(tables):
             return df
     return tables[0].df  # fallback
 
-# --- Clean extracted product table ---
+
 def clean_table(df):
     # Use first row as header
     df.columns = df.iloc[0]
     df = df.drop(index=0).reset_index(drop=True)
 
-    # Drop empty columns
+  
     df = df.dropna(how="all", axis=1)
 
-    # Defensive: get first column name safely
+    
     try:
         first_col = df.columns[0]
     except IndexError:
         print("⚠️ No columns found in table.")
-        return df  # return as-is
+        return df  
 
-    # If the first column is of type string, clean header repeats
+    
     if first_col in df.columns:
         try:
             if pd.api.types.is_string_dtype(df[first_col]):
@@ -83,7 +81,7 @@ def clean_table(df):
 
 
 
-# --- Extract tables with Camelot ---
+
 def extract_tables(pdf_path):
     try:
         tables = camelot.read_pdf(pdf_path, pages='all', flavor='lattice')
@@ -94,7 +92,7 @@ def extract_tables(pdf_path):
         return []
     return tables
 
-# --- Combine everything and export ---
+
 def process_invoice(pdf_file):
     pdf_path = os.path.join(input_folder, pdf_file)
     metadata = extract_metadata(pdf_path)
@@ -107,7 +105,7 @@ def process_invoice(pdf_file):
     raw_df = choose_best_table(tables)
     df = clean_table(raw_df)
 
-    # Add metadata to each row
+ 
     for key, val in metadata.items():
         df[key] = val
     df["Platform"] = "Amazon" if "amazon" in pdf_file.lower() else "Flipkart"
@@ -117,7 +115,7 @@ def process_invoice(pdf_file):
     df.to_excel(output_path, index=False)
     print(f"✅ Saved cleaned data to {output_path}")
 
-# --- Main loop ---
+
 def run_all():
     files = [f for f in os.listdir(input_folder) if f.lower().endswith('.pdf')]
     if not files:
